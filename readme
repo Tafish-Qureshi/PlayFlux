@@ -1,0 +1,4 @@
+# Commando als port 3000 niet werkt
+
+Gebruik npx kill-port 3000 dan wordt port weer vrij
+dan npm run dev
