@@ -1,0 +1,24 @@
+POST http://localhost:3000/users
+Content-Type: application/json
+
+{
+    "username": "Darks_Player",
+    "email": "darks@playflux.nl",
+    "password": "geheim_wachtwoord"
+}
+
+### Verwijder een specifieke gebruiker
+DELETE http://localhost:3000/users/Darks_Player
+
+### Een nieuwe gebruiker toevoegen
+POST http://localhost:3000/users
+Content-Type: application/json
+
+{
+    "username": "SchoonmaakHulp",
+    "email": "clean@playflux.nl",
+    "password": "test"
+}
+
+### De gebruiker weer verwijderen
+DELETE http://localhost:3000/users/SchoonmaakHulp
