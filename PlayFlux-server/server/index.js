@@ -1,79 +1,95 @@
-// index.js
 const express = require('express');
 const dotenv = require('dotenv');
+const { createClient } = require('@supabase/supabase-js');
 
-const bcrypt = require('bcrypt');
-const saltRounds = 10; // Hoe vaker hij hasht, hoe veiliger (maar trager)
-
-// CORRECTE SUPABASE IMPORT
-const { createClient } = require('@supabase/supabase-js'); // let op de accolades
-dotenv.config(); 
+dotenv.config();
 
 const app = express();
 const PORT = 3000;
 
-// Supabase setup
-const supabaseUrl = 'https://cwvoqkkkfevludzbmayy.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey); // nu werkt het
-
-// Routes
-app.get('/api', (req, res) => {
-    res.json('Hello from the backend!');
-});
-
-app.get('/users', async (req, res) => {
-    const { data, error } = await supabase
-        .from('Users')
-        .select('*');
-
-    if (error) {
-        return res.status(500).json({ error: error.message });
-    }
-
-    res.json(data);
-});
-
+// BELANGRIJK: Middleware ALTIJD bovenaan zetten
 app.use(express.json());
 
+const supabaseUrl = 'https://cwvoqkkkfevludzbmayy.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-app.post('/users', async (req, res) => {
-    const { username, email, password } = req.body;
+// --- AUTH ROUTES ---
+
+// Registreren
+app.post('/auth/signup', async (req, res) => {
+    const { email, password, username } = req.body;
+    try {
+        const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+        if (authError) throw authError;
+
+        const { error: dbError } = await supabase
+            .from('Users')
+            .insert([{ user_id: authData.user.id, username, email }]);
+        if (dbError) throw dbError;
+
+        res.status(201).json({ message: "Account aangemaakt!", user: authData.user });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// Inloggen
+app.post('/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        res.json({ message: "Ingelogd!", session: data.session });
+    } catch (err) {
+        res.status(401).json({ error: err.message });
+    }
+});
+
+// --- REDDIT CONTENT ROUTES ---
+
+// Nieuwe post plaatsen
+app.post('/api/posts', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    // Check of body wel bestaat om de TypeError te voorkomen
+    if (!req.body || !req.body.title) {
+        return res.status(400).json({ error: "Titel is verplicht" });
+    }
+
+    const { title, content } = req.body;
+    if (!authHeader) return res.status(401).json({ error: "Log eerst in" });
+
+    const token = authHeader.replace('Bearer ', '');
+    const userClient = createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
+    });
 
     try {
-        // Maak het wachtwoord onleesbaar voordat het naar Supabase gaat
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const { data: { user }, error: authError } = await userClient.auth.getUser();
+        if (authError || !user) throw new Error("Sessie ongeldig");
 
-        const { data, error } = await supabase
-            .from('Users')
-            .insert([
-                { username, email, password: hashedPassword }
-            ])
+        const { data, error } = await userClient
+            .from('Posts')
+            .insert([{ title, content, author_id: user.id }])
             .select();
 
         if (error) throw error;
-
-        res.status(201).json({ message: 'User created securely!', user: data });
+        res.status(201).json({ message: "Post geplaatst!", post: data[0] });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(400).json({ error: err.message });
     }
 });
 
-// Gebruiker verwijderen op basis van username
-app.delete('/users/:username', async (req, res) => {
-    const { username } = req.params;
-
+// Alle posts ophalen (De "Feed")
+app.get('/api/posts', async (req, res) => {
     const { data, error } = await supabase
-        .from('Users')
-        .delete()
-        .eq('username', username)
-        .select();
-
-    if (error) return res.status(500).json({ error: error.message });
+        .from('Posts')
+        .select('*, Users(username)'); // Haalt ook direct de naam van de auteur op!
     
-    res.json({ message: `Gebruiker ${username} verwijderd!`, deleted: data });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
 });
-// Server starten
+
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`PlayFlux server draait op http://localhost:${PORT}`);
 });

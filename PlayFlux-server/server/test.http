@@ -1,24 +1,42 @@
-POST http://localhost:3000/users
+### 1. Registreer een nieuwe speler
+POST http://localhost:3000/auth/signup
 Content-Type: application/json
 
 {
-    "username": "Darks_Player",
-    "email": "darks@playflux.nl",
-    "password": "geheim_wachtwoord"
+    "email": "vers-account@playflux.nl",
+    "password": "Wachtwoord123!",
+    "username": "NieuweSpeler"
 }
 
-### Verwijder een specifieke gebruiker
-DELETE http://localhost:3000/users/Darks_Player
-
-### Een nieuwe gebruiker toevoegen
-POST http://localhost:3000/users
+### 2. Login met die speler (Kopieer het access_token uit de response!)
+POST http://localhost:3000/auth/login
 Content-Type: application/json
 
 {
-    "username": "SchoonmaakHulp",
-    "email": "clean@playflux.nl",
-    "password": "test"
+    "email": "vers-account@playflux.nl",
+    "password": "Wachtwoord123!"
 }
 
-### De gebruiker weer verwijderen
-DELETE http://localhost:3000/users/SchoonmaakHulp
+### 3. Maak een nieuwe post aan (Reddit Post)
+# LET OP: Plak je token achter 'Bearer'
+POST http://localhost:3000/api/posts
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IjVvN0szVS9xR2czd1hYSnciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2N3dm9xa2trZmV2bHVkemJtYXl5LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI2Yzk4ODM1OC04ODdlLTRmNjYtYjhhMi0zNzhhMTE2YmYyNjUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzY2MTQ1NDcyLCJpYXQiOjE3NjYxNDE4NzIsImVtYWlsIjoidmVycy1hY2NvdW50QHBsYXlmbHV4Lm5sIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InZlcnMtYWNjb3VudEBwbGF5Zmx1eC5ubCIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6IjZjOTg4MzU4LTg4N2UtNGY2Ni1iOGEyLTM3OGExMTZiZjI2NSJ9LCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImFhbCI6ImFhbDEiLCJhbXIiOlt7Im1ldGhvZCI6InBhc3N3b3JkIiwidGltZXN0YW1wIjoxNzY2MTQxODcyfV0sInNlc3Npb25faWQiOiI1MzliNTJjMi0xZjkxLTRmNWEtYTVjMi0wNDNkNmMyOWNmMDYiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.SOkrIVLCbVU-KdLZDUcQb76QY47HCBwB92GWJiHe_yM
+Content-Type: application/json
+
+{
+    "title": "Mijn eerste post op PlayFlux Reddit!",
+    "content": "Dit systeem werkt echt soepel met Supabase."
+}
+
+### 4. Haal alle posts op (De "Frontpage")
+GET http://localhost:3000/api/posts
+
+### 5. Verwijder MIJN eigen account
+# Dit verwijdert de rij uit de 'Users' tabel
+DELETE http://localhost:3000/users/me
+Authorization: Bearer HIER_JE_TOKEN_PLAKKEN
+
+### --- OUDE/ADMIN ROUTES (Optioneel) ---
+
+### Alle gebruikers ophalen uit de publieke tabel
+GET http://localhost:3000/users
